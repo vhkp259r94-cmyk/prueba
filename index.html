@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aprende Números Pares e Impares</title>
+    <!-- Tailwind CSS CDN for modern responsive design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Modern font and animations */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        /* Animated pulse for the modal badge */
+        @keyframes keyPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.85; }
+        }
+        
+        .pulse-badge {
+            animation: keyPulse 1.5s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-between p-3 md:p-6">
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div class="max-w-4xl mx-auto w-full space-y-6">
+        
+        <!-- ENCABEZADO -->
+        <header class="text-center py-2">
+            <h1 class="text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+                ¿Es <span class="text-indigo-600">PAR</span> o <span class="text-rose-500">IMPAR</span>?
+            </h1>
+            <p class="text-sm md:text-base text-slate-600 mt-1">
+                Juega con los botones táctiles o con tu teclado <kbd class="px-2 py-0.5 bg-white border border-slate-300 rounded shadow-sm text-xs font-semibold">S</kbd> / <kbd class="px-2 py-0.5 bg-white border border-slate-300 rounded shadow-sm text-xs font-semibold">N</kbd>
+            </p>
+        </header>
+
+        <!-- TARJETA DEL JUEGO -->
+        <main class="bg-white rounded-3xl shadow-xl p-6 md:p-8 text-center border border-slate-200/80">
+            <span class="text-xs uppercase tracking-widest font-extrabold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">
+                Número Aleatorio
+            </span>
+
+            <!-- NÚMERO GIGANTE -->
+            <div id="numero" class="text-7xl md:text-9xl font-black my-4 md:my-6 text-slate-800 tracking-tight transition-all">
+                0
+            </div>
+
+            <!-- BOTONES DE ACCIÓN (Móvil / PC) -->
+            <div class="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                <button onclick="responder(true)" 
+                        class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold text-xl md:text-2xl py-4 md:py-5 rounded-2xl shadow-lg shadow-emerald-500/30 transition-all flex flex-col items-center justify-center">
+                    <span>SÍ (ES PAR)</span>
+                    <span class="text-xs font-normal opacity-80 mt-1 hidden md:inline">Tecla [S] o Flecha ⬅️</span>
+                </button>
+
+                <button onclick="responder(false)" 
+                        class="bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-extrabold text-xl md:text-2xl py-4 md:py-5 rounded-2xl shadow-lg shadow-rose-500/30 transition-all flex flex-col items-center justify-center">
+                    <span>NO (ES IMPAR)</span>
+                    <span class="text-xs font-normal opacity-80 mt-1 hidden md:inline">Tecla [N] o Flecha ➡️</span>
+                </button>
+            </div>
+        </main>
+
+        <!-- SECCIÓN DE TABLAS -->
+        <section class="bg-white rounded-3xl shadow-lg border border-slate-200/80 overflow-hidden">
+            <!-- PESTAÑAS -->
+            <div class="flex border-b border-slate-200 bg-slate-50">
+                <button id="btn-tab-historial" onclick="cambiarPestaña('historial')" 
+                        class="flex-1 py-3 px-4 font-bold text-center text-indigo-600 border-b-2 border-indigo-600 bg-white transition-all text-sm md:text-base">
+                    📜 Histórico de Intentos
+                </button>
+                <button id="btn-tab-regla" onclick="cambiarPestaña('regla')" 
+                        class="flex-1 py-3 px-4 font-bold text-center text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition-all text-sm md:text-base">
+                    💡 Regla y Tabla de Apoyo
+                </button>
+            </div>
+
+            <!-- TABLA 1: HISTORIAL DE RESULTADOS -->
+            <div id="tab-historial" class="p-4 md:p-6 block">
+                <!-- Estadísticas Rápidas -->
+                <div class="grid grid-cols-3 gap-2 md:gap-4 mb-4 text-center">
+                    <div class="bg-slate-100 p-2 md:p-3 rounded-xl">
+                        <div class="text-xs text-slate-500 font-bold uppercase">Jugados</div>
+                        <div id="stat-total" class="text-xl md:text-2xl font-black text-slate-800">0</div>
+                    </div>
+                    <div class="bg-emerald-50 p-2 md:p-3 rounded-xl border border-emerald-100">
+                        <div class="text-xs text-emerald-600 font-bold uppercase">Aciertos</div>
+                        <div id="stat-aciertos" class="text-xl md:text-2xl font-black text-emerald-600">0</div>
+                    </div>
+                    <div class="bg-rose-50 p-2 md:p-3 rounded-xl border border-rose-100">
+                        <div class="text-xs text-rose-600 font-bold uppercase">Fallos</div>
+                        <div id="stat-fallos" class="text-xl md:text-2xl font-black text-rose-600">0</div>
+                    </div>
+                </div>
+
+                <!-- Tabla Responsive -->
+                <div class="max-h-56 overflow-y-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-sm md:text-base">
+                        <thead class="bg-slate-100 sticky top-0 text-slate-700 font-bold">
+                            <tr>
+                                <th class="p-3 border-b">#</th>
+                                <th class="p-3 border-b">Número</th>
+                                <th class="p-3 border-b">Tu Respuesta</th>
+                                <th class="p-3 border-b">Tipo Real</th>
+                                <th class="p-3 border-b text-center">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-historial-body" class="divide-y divide-slate-100 text-slate-600">
+                            <tr>
+                                <td colspan="5" class="p-4 text-center text-slate-400 italic">
+                                    Aún no has respondido ninguna pregunta. ¡Comienza a jugar!
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TABLA 2: REFERENCIA EDUCATIVA -->
+            <div id="tab-regla" class="p-4 md:p-6 hidden">
+                <div class="mb-4 text-sm text-slate-600 leading-relaxed">
+                    Un número es <strong class="text-indigo-600">PAR</strong> si termina en <span class="bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded">0, 2, 4, 6, 8</span> (se puede dividir entre 2 exactamente).<br>
+                    Es <strong class="text-rose-500">IMPAR</strong> si termina en <span class="bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded">1, 3, 5, 7, 9</span>.
+                </div>
+
+                <div class="max-h-56 overflow-y-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-100 sticky top-0 text-slate-700 font-bold">
+                            <tr>
+                                <th class="p-2 md:p-3 border-b">Termina en...</th>
+                                <th class="p-2 md:p-3 border-b">Clasificación</th>
+                                <th class="p-2 md:p-3 border-b">Ejemplo</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr class="bg-emerald-50/50">
+                                <td class="p-2 md:p-3 font-extrabold text-emerald-700">0, 2, 4, 6, 8</td>
+                                <td class="p-2 md:p-3 font-bold text-emerald-600">PAR</td>
+                                <td class="p-2 md:p-3 text-slate-600">12, 24, 50, 88...</td>
+                            </tr>
+                            <tr class="bg-rose-50/50">
+                                <td class="p-2 md:p-3 font-extrabold text-rose-700">1, 3, 5, 7, 9</td>
+                                <td class="p-2 md:p-3 font-bold text-rose-600">IMPAR</td>
+                                <td class="p-2 md:p-3 text-slate-600">13, 27, 41, 99...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- CARTEL GIGANTE / ANUNCIO EMERGENTE (MODAL) -->
+    <div id="modal" onclick="cerrarModal()" 
+         class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden flex-col items-center justify-center p-6 text-center z-50 cursor-pointer">
+        
+        <div id="modal-contenido" class="max-w-lg w-full transform transition-all scale-100">
+            <!-- Icono / Título -->
+            <div id="modal-titulo" class="text-5xl md:text-7xl font-black mb-3">
+                <!-- Se llena con JS -->
+            </div>
+
+            <!-- Explicación -->
+            <div id="modal-mensaje" class="text-xl md:text-3xl font-semibold text-white/90 mb-8 leading-snug">
+                <!-- Se llena con JS -->
+            </div>
+
+            <!-- Botón / Cartel Informativo -->
+            <div class="inline-block bg-white text-slate-900 font-black text-lg md:text-xl px-8 py-4 rounded-2xl shadow-2xl pulse-badge">
+                👆 PRESIONA [ENTER] O TOCA LA PANTALLA
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LÓGICO Y LIMPIO -->
+    <script>
+        // ==========================================
+        // 1. VARIABLES GLOBALES Y ESTADO
+        // ==========================================
+        let numeroActual = 0;
+        let aciertos = 0;
+        let fallos = 0;
+        let historial = [];
+
+        // Referencias a elementos HTML
+        const elNumero = document.getElementById('numero');
+        const modal = document.getElementById('modal');
+        const modalTitulo = document.getElementById('modal-titulo');
+        const modalMensaje = document.getElementById('modal-mensaje');
+        const tablaBody = document.getElementById('tabla-historial-body');
+
+        // ==========================================
+        // 2. FUNCIONES DEL JUEGO
+        // ==========================================
+
+        // Genera un número aleatorio entre 1 y 100
+        const sacarNuevoNumero = () => {
+            numeroActual = Math.floor(Math.random() * 100) + 1;
+            elNumero.textContent = numeroActual;
+        };
+
+        // Procesa la respuesta dada por el usuario (true = SÍ es par, false = NO es par)
+        const responder = (eleccionUsuario) => {
+            const esPar = (numeroActual % 2 === 0);
+            const esCorrecto = (eleccionUsuario === esPar);
+
+            // Actualizamos puntuaciones
+            if (esCorrecto) {
+                aciertos++;
+            } else {
+                fallos++;
+            }
+
+            // Registrar en la lista del historial
+            historial.unshift({
+                numero: numeroActual,
+                respuestaDada: eleccionUsuario ? 'SÍ (PAR)' : 'NO (IMPAR)',
+                esPar: esPar ? 'PAR' : 'IMPAR',
+                correcto: esCorrecto
+            });
+
+            // Configurar mensaje del modal gigante
+            modalTitulo.textContent = esCorrecto ? "✅ ¡CORRECTO!" : "❌ ¡INCORRECTO!";
+            modalTitulo.className = `text-5xl md:text-7xl font-black mb-3 ${esCorrecto ? 'text-emerald-400' : 'text-rose-400'}`;
+            
+            modalMensaje.innerHTML = `El número <strong class="underline">${numeroActual}</strong> es <strong class="uppercase">${esPar ? 'PAR' : 'IMPAR'}</strong>.<br><span class="text-base text-slate-300 font-normal">(${numeroActual} % 2 ${esPar ? '= 0' : '≠ 0'})</span>`;
+
+            // Mostrar el cartel gigante
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            // Actualizar tabla visual de fondo
+            actualizarTablaHistorial();
+        };
+
+        // Cierra la advertencia gigante y saca el siguiente número
+        const cerrarModal = () => {
+            if (!modal.classList.contains('hidden')) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                sacarNuevoNumero();
+            }
+        };
+
+        // ==========================================
+        // 3. ACTUALIZACIÓN DE TABLAS Y ESTADÍSTICAS
+        // ==========================================
+        const actualizarTablaHistorial = () => {
+            // Actualizar contadores
+            document.getElementById('stat-total').textContent = historial.length;
+            document.getElementById('stat-aciertos').textContent = aciertos;
+            document.getElementById('stat-fallos').textContent = fallos;
+
+            // Limpiar la tabla
+            tablaBody.innerHTML = '';
+
+            // Generar filas
+            historial.forEach((intento, index) => {
+                const fila = document.createElement('tr');
+                fila.className = intento.correcto ? 'bg-emerald-50/40' : 'bg-rose-50/40';
+
+                fila.innerHTML = `
+                    <td class="p-3 font-semibold text-slate-400">${historial.length - index}</td>
+                    <td class="p-3 font-black text-slate-800">${intento.numero}</td>
+                    <td class="p-3">${intento.respuestaDada}</td>
+                    <td class="p-3 font-bold">${intento.esPar}</td>
+                    <td class="p-3 text-center">
+                        ${intento.correcto 
+                            ? '<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded-full">Correcto</span>' 
+                            : '<span class="bg-rose-100 text-rose-800 text-xs font-bold px-2 py-1 rounded-full">Incorrecto</span>'}
+                    </td>
+                `;
+                tablaBody.appendChild(fila);
+            });
+        };
+
+        // Cambiar pestaña entre Historial y Regla Educativa
+        const cambiarPestaña = (pestaña) => {
+            const tabHistorial = document.getElementById('tab-historial');
+            const tabRegla = document.getElementById('tab-regla');
+            const btnHistorial = document.getElementById('btn-tab-historial');
+            const btnRegla = document.getElementById('btn-tab-regla');
+
+            if (pestaña === 'historial') {
+                tabHistorial.classList.remove('hidden');
+                tabRegla.classList.add('hidden');
+                
+                btnHistorial.className = 'flex-1 py-3 px-4 font-bold text-center text-indigo-600 border-b-2 border-indigo-600 bg-white transition-all text-sm md:text-base';
+                btnRegla.className = 'flex-1 py-3 px-4 font-bold text-center text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition-all text-sm md:text-base';
+            } else {
+                tabHistorial.classList.add('hidden');
+                tabRegla.classList.remove('hidden');
+
+                btnRegla.className = 'flex-1 py-3 px-4 font-bold text-center text-indigo-600 border-b-2 border-indigo-600 bg-white transition-all text-sm md:text-base';
+                btnHistorial.className = 'flex-1 py-3 px-4 font-bold text-center text-slate-500 border-b-2 border-transparent hover:text-slate-800 transition-all text-sm md:text-base';
+            }
+        };
+
+        // ==========================================
+        // 4. DISPARADORES DE TECLADO (PC)
+        // ==========================================
+        document.addEventListener('keydown', (e) => {
+            // Si el modal está abierto, cualquier tecla o ENTER lo cierra
+            if (!modal.classList.contains('hidden')) {
+                cerrarModal();
+                return;
+            }
+
+            // Teclas para responder
+            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowLeft') {
+                responder(true);
+            } else if (e.key === 'n' || e.key === 'N' || e.key === 'ArrowRight') {
+                responder(false);
+            }
+        });
+
+        // ==========================================
+        // 5. INICIALIZACIÓN
+        // ==========================================
+        sacarNuevoNumero();
+    </script>
+</body>
+</html>
