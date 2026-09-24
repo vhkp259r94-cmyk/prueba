@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¿Es PAR o IMPAR? - Juego Interactivo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Outfit & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Tone.js Sound Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-fast': 'pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-short': 'bounce 0.5s ease-in-out 1',
+                        'shake': 'shake 0.4s ease-in-out',
+                    },
+                    keyframes: {
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0)' },
+                            '25%': { transform: 'translateX(-8px)' },
+                            '75%': { transform: 'translateX(8px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbars & glassmorphic utility styles */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(71, 85, 105, 1);
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
+
+    <div class="min-h-screen flex flex-col max-w-6xl mx-auto w-full p-3 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- Top Header Navigation -->
+        <header class="glass-panel rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-[#] text-2xl text-white font-black">#</i>
+                </div>
+                <div>
+                    <h1 class="font-display text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-indigo-400 via-purple-300 to-pink-400 bg-clip-text text-transparent">
+                        ¿Es PAR o IMPAR?
+                    </h1>
+                    <p class="text-xs sm:text-sm text-slate-400 font-medium">Aprende números jugando • Puntos guardados por nombre</p>
+                </div>
+            </div>
+
+            <!-- Profile & Save Controls Bar -->
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <div class="relative flex-1 md:w-56">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-user-gear"></i>
+                    </span>
+                    <input type="text" id="playerInput" placeholder="Tu Nombre (ej. Angelo)"
+                        class="w-full pl-9 pr-3 py-2 bg-slate-900/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-slate-500 text-slate-100 font-medium transition-all"
+                        maxlength="16" />
+                </div>
+                <button onclick="guardarPartida()" 
+                    class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Guardar</span>
+                </button>
+                <button onclick="cargarPartidaManual()" 
+                    class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-semibold text-sm rounded-xl active:scale-95 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>Cargar</span>
+                </button>
+            </div>
+        </header>
+
+        <div id="activeProfileBanner" class="hidden glass-panel rounded-xl px-4 py-3 border-indigo-500/30 flex items-center justify-between bg-indigo-950/20">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div>
+                    <span class="text-xs text-indigo-300 font-semibold uppercase tracking-wider">Perfil Activo:</span>
+                    <span id="activePlayerName" class="font-display font-bold text-slate-100 text-lg ml-1">Angelo</span>
+                </div>
+            </div>
+            <button onclick="desconectarPerfil()" class="text-xs text-slate-400 hover:text-red-400 underline transition-colors">
+                <i class="fa-solid fa-power-off mr-1"></i>Cambiar
+            </button>
+        </div>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+
+            <!-- Left Panel: Game Playground (2 cols wide on desktop) -->
+            <section class="lg:col-span-2 glass-panel rounded-2xl p-6 sm:p-8 flex flex-col justify-between shadow-2xl relative overflow-hidden border-slate-800">
+                <div class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none text-white text-9xl font-black">
+                    #
+                </div>
+
+                <!-- Top Display Bar / Streak -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700">
+                            Número Aleatorio
+                        </span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
+                        <i class="fa-solid fa-fire text-amber-500"></i>
+                        <span class="text-xs font-bold text-amber-400">Racha: <span id="streakCount">0</span></span>
+                    </div>
+                </div>
+
+                <!-- Big Number Generator Display -->
+                <div class="my-8 sm:my-12 text-center py-6 glass-card rounded-2xl border-slate-700/50 shadow-inner relative group">
+                    <div id="numberDisplay" class="font-display text-7xl sm:text-9xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white via-slate-100 to-slate-400 drop-shadow-md tracking-tight transition-all duration-300 scale-100">
+                        ?
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-400 mt-2 font-medium">¿Es divisible por 2?</p>
+                </div>
+
+                <!-- Feedback Toast Banner -->
+                <div id="feedbackBanner" class="h-10 my-2 flex items-center justify-center font-bold text-lg rounded-xl opacity-0 transition-all duration-300">
+                    <span id="feedbackText">¡Adivina el número!</span>
+                </div>
+
+                <!-- Interactive Game Buttons -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                    <button onclick="verificarRespuesta(true)" id="btnPar"
+                        class="group relative p-5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white rounded-2xl shadow-lg shadow-emerald-600/20 transition-all duration-150 transform active:scale-95 font-display font-extrabold text-xl sm:text-2xl flex flex-col items-center justify-center gap-1 border border-emerald-400/30">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>SÍ (ES PAR)</span>
+                        </div>
+                        <span class="text-xs font-sans font-medium text-emerald-100 opacity-80 group-hover:opacity-100">Tecla [S] o Flecha [←]</span>
+                    </button>
+
+                    <button onclick="verificarRespuesta(false)" id="btnImpar"
+                        class="group relative p-5 bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white rounded-2xl shadow-lg shadow-rose-600/20 transition-all duration-150 transform active:scale-95 font-display font-extrabold text-xl sm:text-2xl flex flex-col items-center justify-center gap-1 border border-rose-400/30">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                            <span>NO (ES IMPAR)</span>
+                        </div>
+                        <span class="text-xs font-sans font-medium text-rose-100 opacity-80 group-hover:opacity-100">Tecla [N] o Flecha [→]</span>
+                    </button>
+                </div>
+
+                <!-- Statistics Score Cards Grid -->
+                <div class="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-slate-800">
+                    <div class="glass-card p-3 rounded-xl text-center border-slate-800">
+                        <span class="text-xs text-slate-400 font-semibold uppercase">Jugados</span>
+                        <div id="statTotal" class="text-xl sm:text-2xl font-black font-display text-slate-100">0</div>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl text-center border-emerald-950/40 bg-emerald-950/10">
+                        <span class="text-xs text-emerald-400 font-semibold uppercase">Aciertos</span>
+                        <div id="statAciertos" class="text-xl sm:text-2xl font-black font-display text-emerald-400">0</div>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl text-center border-rose-950/40 bg-rose-950/10">
+                        <span class="text-xs text-rose-400 font-semibold uppercase">Fallos</span>
+                        <div id="statFallos" class="text-xl sm:text-2xl font-black font-display text-rose-400">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="glass-panel rounded-2xl p-6 flex flex-col gap-5 border-slate-800">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-users-rectangle text-indigo-400 text-lg"></i>
+                        <h2 class="font-display font-bold text-lg text-slate-100">Perfiles Guardados</h2>
+                    </div>
+                    <span class="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">localStorage</span>
+                </div>
+
+                <!-- Profiles List -->
+                <div id="profilesList" class="flex-1 overflow-y-auto max-h-[320px] lg:max-h-none space-y-2.5 pr-1">
+                    <!-- Dynamic Profile Items Inserted Here -->
+                    <div class="text-center py-8 text-slate-500 text-sm">
+                        <i class="fa-solid fa-ghost text-2xl mb-2 block opacity-40"></i>
+                        No hay perfiles guardados.<br>Escribe tu nombre y presiona <strong>Guardar</strong>.
+                    </div>
+                </div>
+
+                <p class="text-xs text-slate-400 text-center italic">
+                    <i class="fa-solid fa-circle-info mr-1"></i>Haz clic en un perfil para cargar sus datos.
+                </p>
+            </section>
+        </main>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Interactive Attempt History -->
+            <section class="glass-panel rounded-2xl p-6 border-slate-800">
+                <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-indigo-400"></i>
+                        <h3 class="font-display font-bold text-slate-100">Historial de Intentos</h3>
+                    </div>
+                    <button onclick="limpiarHistorial()" class="text-xs text-slate-400 hover:text-slate-200 transition-colors">
+                        Limpiar vista
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto max-h-56">
+                    <table class="w-full text-left text-xs sm:text-sm">
+                        <thead class="bg-slate-900/80 text-slate-400 font-semibold uppercase text-[10px] tracking-wider sticky top-0">
+                            <tr>
+                                <th class="p-2 sm:p-2.5 rounded-l-lg">#</th>
+                                <th class="p-2 sm:p-2.5">Número</th>
+                                <th class="p-2 sm:p-2.5">Tu Respuesta</th>
+                                <th class="p-2 sm:p-2.5">Tipo Real</th>
+                                <th class="p-2 sm:p-2.5 rounded-r-lg text-right">Resultado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-slate-800/60 font-medium">
+                            <tr id="emptyHistoryRow">
+                                <td colspan="5" class="text-center p-6 text-slate-500 italic">
+                                    Aún no has jugado ningún intento en esta sesión.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Educational Rules & Support Table -->
+            <section class="glass-panel rounded-2xl p-6 border-slate-800 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center gap-2 mb-4 border-b border-slate-800 pb-3">
+                        <i class="fa-solid fa-lightbulb text-amber-400"></i>
+                        <h3 class="font-display font-bold text-slate-100">Regla y Tabla de Apoyo</h3>
+                    </div>
+
+                    <div class="space-y-3 text-xs sm:text-sm text-slate-300">
+                        <div class="p-3 glass-card rounded-xl border-indigo-500/20 bg-indigo-950/10">
+                            <span class="font-bold text-indigo-300 block mb-1">💡 Regla de Oro:</span>
+                            Solo necesitas mirar la <strong>ÚLTIMA CIFRA</strong> del número.
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="p-3 glass-card rounded-xl border-emerald-500/20 bg-emerald-950/10">
+                                <span class="font-bold text-emerald-400 text-xs uppercase block mb-1">Es PAR si termina en:</span>
+                                <div class="flex justify-around font-display font-extrabold text-lg sm:text-xl text-emerald-300">
+                                    <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span>
+                                </div>
+                            </div>
+                            <div class="p-3 glass-card rounded-xl border-rose-500/20 bg-rose-950/10">
+                                <span class="font-bold text-rose-400 text-xs uppercase block mb-1">Es IMPAR si termina en:</span>
+                                <div class="flex justify-around font-display font-extrabold text-lg sm:text-xl text-rose-300">
+                                    <span>1</span><span>3</span><span>5</span><span>7</span><span>9</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                    <span>Soporta controles táctiles y de teclado</span>
+                    <span class="flex gap-1">
+                        <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-[10px] font-mono">S</kbd>
+                        <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-[10px] font-mono">N</kbd>
+                    </span>
+                </div>
+            </section>
+        </div>
+
+        <footer class="text-center text-xs text-slate-500 py-4">
+            ¿Es PAR o IMPAR? • Aplicación Educativa Interactiva en JavaScript
+        </footer>
+    </div>
+
+    <script>
+        let numeroActual = 0;
+        let aciertos = 0;
+        let fallos = 0;
+        let total = 0;
+        let racha = 0;
+        let jugadorActual = "";
+        let intentosHistorial = [];
+
+        // Tone.js Audio Synth Setup for interactive sound feedback
+        let synthCorrect, synthWrong;
+        let audioInitialized = false;
+
+        function initAudio() {
+            if (audioInitialized) return;
+            try {
+                synthCorrect = new Tone.Synth({
+                    oscillator: { type: 'triangle' },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination();
+                
+                synthWrong = new Tone.Synth({
+                    oscillator: { type: 'sawtooth' },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.1 }
+                }).toDestination();
+
+                Tone.start();
+                audioInitialized = true;
+            } catch (e) {
+                console.log("Audio non-critical initialization skip", e);
+            }
+        }
+
+        function playSound(isCorrect) {
+            if (!audioInitialized) initAudio();
+            try {
+                if (isCorrect) {
+                    synthCorrect.triggerAttackRelease("C5", "8n", Tone.now());
+                    synthCorrect.triggerAttackRelease("E5", "8n", Tone.now() + 0.08);
+                } else {
+                    synthWrong.triggerAttackRelease("G2", "8n", Tone.now());
+                }
+            } catch (e) {
+                // Ignore audio errors gracefully
+            }
+        }
+
+        function generarNumero() {
+            numeroActual = Math.floor(Math.random() * 99) + 1;
+            const numDisplay = document.getElementById('numberDisplay');
+            
+            // Pop transition animation
+            numDisplay.classList.remove('scale-100');
+            numDisplay.classList.add('scale-90', 'opacity-50');
+            
+            setTimeout(() => {
+                numDisplay.innerText = numeroActual;
+                numDisplay.classList.remove('scale-90', 'opacity-50');
+                numDisplay.classList.add('scale-100');
+            }, 100);
+        }
+
+        function verificarRespuesta(esParElegido) {
+            if (numeroActual === 0) return;
+            initAudio();
+
+            const esParReal = (numeroActual % 2 === 0);
+            const esCorrecto = (esParElegido === esParReal);
+
+            total++;
+            if (esCorrecto) {
+                aciertos++;
+                racha++;
+                playSound(true);
+                mostrarFeedback(true, "¡CORRECTO! 🎉");
+                lanzarConfeti();
+            } else {
+                fallos++;
+                racha = 0;
+                playSound(false);
+                mostrarFeedback(false, `¡INCORRECTO! ${numeroActual} es ${esParReal ? 'PAR' : 'IMPAR'} ❌`);
+                animarError();
+            }
+
+            actualizarMarcadores();
+            registrarHistorial(numeroActual, esParElegido, esParReal, esCorrecto);
+
+            // Guardar automáticamente si hay un perfil activo
+            if (jugadorActual) {
+                guardarDatosSilencioso();
+            }
+
+            generarNumero();
+        }
+
+        function mostrarFeedback(esCorrecto, texto) {
+            const banner = document.getElementById('feedbackBanner');
+            const feedbackText = document.getElementById('feedbackText');
+
+            feedbackText.innerText = texto;
+            banner.className = `h-10 my-2 flex items-center justify-center font-bold text-sm sm:text-base rounded-xl transition-all duration-300 opacity-100 ${
+                esCorrecto 
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' 
+                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+            }`;
+
+            setTimeout(() => {
+                banner.classList.add('opacity-0');
+            }, 1800);
+        }
+
+        function lanzarConfeti() {
+            try {
+                confetti({
+                    particleCount: 35,
+                    spread: 60,
+                    origin: { y: 0.7 },
+                    colors: ['#10b981', '#6366f1', '#f59e0b', '#ec4899']
+                });
+            } catch (e) {}
+        }
+
+        function animarError() {
+            const card = document.getElementById('numberDisplay').parentElement;
+            card.classList.add('animate-shake');
+            setTimeout(() => card.classList.remove('animate-shake'), 400);
+        }
+
+        function actualizarMarcadores() {
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statAciertos').innerText = aciertos;
+            document.getElementById('statFallos').innerText = fallos;
+            document.getElementById('streakCount').innerText = racha;
+        }
+
+        function registrarHistorial(numero, respuestaElegida, esParReal, esCorrecto) {
+            const emptyRow = document.getElementById('emptyHistoryRow');
+            if (emptyRow) emptyRow.remove();
+
+            const tbody = document.getElementById('historyTableBody');
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-slate-800/40 transition-colors';
+
+            const respText = respuestaElegida ? 'PAR' : 'IMPAR';
+            const realText = esParReal ? 'PAR' : 'IMPAR';
+
+            row.innerHTML = `
+                <td class="p-2 sm:p-2.5 text-slate-500 font-mono">${total}</td>
+                <td class="p-2 sm:p-2.5 font-bold font-display text-slate-200">${numero}</td>
+                <td class="p-2 sm:p-2.5 font-semibold ${respuestaElegida ? 'text-emerald-400' : 'text-rose-400'}">${respText}</td>
+                <td class="p-2 sm:p-2.5 text-slate-400">${realText}</td>
+                <td class="p-2 sm:p-2.5 text-right font-bold ${esCorrecto ? 'text-emerald-400' : 'text-rose-400'}">
+                    ${esCorrecto ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>'}
+                </td>
+            `;
+
+            tbody.insertBefore(row, tbody.firstChild);
+        }
+
+        function limpiarHistorial() {
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = `
+                <tr id="emptyHistoryRow">
+                    <td colspan="5" class="text-center p-6 text-slate-500 italic">
+                        Aún no has jugado ningún intento en esta sesión.
+                    </td>
+                </tr>
+            `;
+        }
+
+        function obtenerPerfilesGuardados() {
+            const perfiles = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('par_impar_perfil_')) {
+                    const nombreClean = key.replace('par_impar_perfil_', '');
+                    try {
+                        perfiles[nombreClean] = JSON.parse(localStorage.getItem(key));
+                    } catch (e) {}
+                }
+            }
+            return perfiles;
+        }
+
+        function renderizarListaPerfiles() {
+            const container = document.getElementById('profilesList');
+            const perfiles = obtenerPerfilesGuardados();
+            const nombres = Object.keys(perfiles);
+
+            if (nombres.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-500 text-sm">
+                        <i class="fa-solid fa-ghost text-2xl mb-2 block opacity-40"></i>
+                        No hay perfiles guardados.<br>Escribe tu nombre arriba y presiona <strong>Guardar</strong>.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            nombres.forEach(nombreKey => {
+                const data = perfiles[nombreKey];
+                const isCurrent = (jugadorActual.toLowerCase() === nombreKey.toLowerCase());
+
+                const item = document.createElement('div');
+                item.className = `p-3 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                    isCurrent 
+                        ? 'bg-indigo-900/40 border-indigo-500/50 text-white shadow-md' 
+                        : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                }`;
+
+                item.innerHTML = `
+                    <div class="flex items-center gap-3 flex-1 min-w-0" onclick="cargarPerfil('${data.nombre}')">
+                        <div class="w-8 h-8 rounded-lg ${isCurrent ? 'bg-indigo-500' : 'bg-slate-800'} flex items-center justify-center text-xs font-bold font-display text-white">
+                            ${data.nombre.substring(0,2).toUpperCase()}
+                        </div>
+                        <div class="truncate">
+                            <h4 class="font-bold text-sm truncate ${isCurrent ? 'text-indigo-200' : 'text-slate-200'}">${data.nombre}</h4>
+                            <p class="text-[11px] text-slate-400">
+                                Aciertos: <span class="text-emerald-400 font-semibold">${data.aciertos}</span> • Total: ${data.total}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 ml-2">
+                        <button onclick="cargarPerfil('${data.nombre}')" title="Cargar Perfil" class="p-1.5 text-slate-400 hover:text-indigo-400 transition-colors">
+                            <i class="fa-solid fa-cloud-arrow-down"></i>
+                        </button>
+                        <button onclick="borrarPerfil('${data.nombre}', event)" title="Eliminar Perfil" class="p-1.5 text-slate-400 hover:text-rose-400 transition-colors">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(item);
+            });
+        }
+
+        function guardarPartida() {
+            const input = document.getElementById('playerInput');
+            const nombre = input.value.trim();
+
+            if (!nombre) {
+                alert("Por favor, introduce tu nombre o apodo (ej. Angelo) para guardar tu progreso.");
+                input.focus();
+                return;
+            }
+
+            jugadorActual = nombre;
+            guardarDatosSilencioso();
+
+            document.getElementById('activePlayerName').innerText = jugadorActual;
+            document.getElementById('activeProfileBanner').classList.remove('hidden');
+
+            renderizarListaPerfiles();
+            mostrarFeedback(true, `¡Progreso de "${jugadorActual}" guardado!`);
+        }
+
+        function guardarDatosSilencioso() {
+            if (!jugadorActual) return;
+            const perfilData = {
+                nombre: jugadorActual,
+                aciertos: aciertos,
+                fallos: fallos,
+                total: total,
+                racha: racha,
+                ultimaActualizacion: new Date().toISOString()
+            };
+            localStorage.setItem('par_impar_perfil_' + jugadorActual.toLowerCase(), JSON.stringify(perfilData));
+        }
+
+        function cargarPerfil(nombre) {
+            const dataRaw = localStorage.getItem('par_impar_perfil_' + nombre.toLowerCase());
+            if (!dataRaw) return;
+
+            try {
+                const data = JSON.parse(dataRaw);
+                jugadorActual = data.nombre;
+                aciertos = data.aciertos || 0;
+                fallos = data.fallos || 0;
+                total = data.total || 0;
+                racha = data.racha || 0;
+
+                document.getElementById('playerInput').value = jugadorActual;
+                document.getElementById('activePlayerName').innerText = jugadorActual;
+                document.getElementById('activeProfileBanner').classList.remove('hidden');
+
+                actualizarMarcadores();
+                renderizarListaPerfiles();
+                mostrarFeedback(true, `Partida de "${jugadorActual}" cargada.`);
+            } catch (e) {
+                alert("Ocurrió un error al cargar los datos del perfil.");
+            }
+        }
+
+        function cargarPartidaManual() {
+            const nombre = document.getElementById('playerInput').value.trim();
+            if (!nombre) {
+                alert("Escribe el nombre del perfil que deseas cargar.");
+                return;
+            }
+            if (localStorage.getItem('par_impar_perfil_' + nombre.toLowerCase())) {
+                cargarPerfil(nombre);
+            } else {
+                alert(`No se encontró ningún perfil con el nombre "${nombre}".`);
+            }
+        }
+
+        function borrarPerfil(nombre, event) {
+            event.stopPropagation();
+            if (confirm(`¿Seguro que deseas eliminar el perfil guardado de "${nombre}"?`)) {
+                localStorage.removeItem('par_impar_perfil_' + nombre.toLowerCase());
+                if (jugadorActual.toLowerCase() === nombre.toLowerCase()) {
+                    desconectarPerfil();
+                }
+                renderizarListaPerfiles();
+            }
+        }
+
+        function desconectarPerfil() {
+            jugadorActual = "";
+            document.getElementById('activeProfileBanner').classList.add('hidden');
+            document.getElementById('playerInput').value = "";
+            renderizarListaPerfiles();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            // Evitar activar el juego si se está escribiendo en el input de texto
+            if (document.activeElement.tagName === 'INPUT') return;
+
+            if (e.key === 's' || e.key === 'S' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                verificarRespuesta(true);
+            } else if (e.key === 'n' || e.key === 'N' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                verificarRespuesta(false);
+            }
+        });
+
+        // Initialize application on load
+        window.onload = function() {
+            generarNumero();
+            renderizarListaPerfiles();
+        };
+    </script>
+</body>
+</html>
